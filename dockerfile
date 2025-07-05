@@ -6,10 +6,10 @@ WORKDIR /app
 RUN chown -R node:node /app
 USER node
 
-# 1. 单独复制 package 文件（利用缓存层）
+# 1. 单独复制package文件（利用缓存层）
 COPY --chown=node:node package*.json ./
 
-# 2. 安装依赖（使用 ci 命令保持一致性）
+# 2. 安装依赖（使用ci命令保持一致性）
 RUN npm ci --prefer-offline
 
 # 3. 复制其他文件
@@ -19,21 +19,20 @@ COPY --chown=node:node . .
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
-# 生产阶段 - 只提供静态文件（不再运行 Nginx）
-FROM alpine:latest AS production-stage
-
-# 安装 curl 用于健康检查（可选）
-RUN apk add --no-cache curl
+# 生产阶段 - 保持轻量
+FROM nginx:alpine AS production-stage
 
 # 从构建阶段复制产物
-COPY --from=build-stage --chown=1000:1000 /app/dist /app/dist
+COPY --from=build-stage --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
-# 健康检查（检查静态文件是否存在）
+# 使用自定义配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 健康检查
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost/ || exit 1
+  CMD curl -f http://localhost:5173/ || exit 1
 
-# 声明数据卷（让外部 Nginx 挂载）
-VOLUME /app/dist
+# 暴露端口（与nginx.conf一致）
+EXPOSE 5173
 
-# 启动命令（可选，可以只是 sleep 保持容器运行）
-CMD ["sh", "-c", "while true; do sleep 86400; done"]
+CMD ["nginx", "-g", "daemon off;"]
