@@ -33,6 +33,6 @@ HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:8083/ || exit 1
 
 # 暴露端口（与nginx.conf一致）
-EXPOSE 8083
+EXPOSE 5173
 
 CMD ["nginx", "-g", "daemon off;"]
