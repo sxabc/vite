@@ -11,8 +11,5 @@ export default defineConfig({
         // rewrite: path => path.replace(/^\/api/, '')
       }
     }
-  },
-  preview: {
-    port: 8083 // 生产预览端口
   }
 })
