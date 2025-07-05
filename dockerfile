@@ -1,5 +1,5 @@
 # 1. 使用 Node 镜像构建阶段，编译打包 Vue 项目
-FROM node:18-alpine AS build-stage
+FROM node:20-alpine AS build-stage
 
 # 设置工作目录
 WORKDIR /app
