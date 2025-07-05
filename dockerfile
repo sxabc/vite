@@ -1,32 +1,38 @@
-# 1. 使用 Node 镜像构建阶段，编译打包 Vue 项目
+# 构建阶段 - 使用 Node 20 镜像
 FROM node:20-alpine AS build-stage
 
-# 设置工作目录
+# 设置工作目录并修复权限
 WORKDIR /app
+RUN chown -R node:node /app
+USER node
 
-# 复制 package.json 和 package-lock.json (如果有)
-COPY package*.json ./
+# 1. 单独复制package文件（利用缓存层）
+COPY --chown=node:node package*.json ./
 
-# 安装依赖
-RUN npm install
+# 2. 安装依赖（使用ci命令保持一致性）
+RUN npm ci --prefer-offline
 
-# 复制所有源码
-COPY . .
+# 3. 复制其他文件
+COPY --chown=node:node . .
 
-# 运行打包命令，生成生产环境代码
+# 4. 构建配置（调整内存限制）
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
-# 2. 使用 Nginx 镜像作为生产环境运行阶段，提供静态资源服务
+# 生产阶段 - 保持轻量
 FROM nginx:alpine AS production-stage
 
-# 复制第一阶段构建好的静态资源到 nginx 默认目录
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+# 从构建阶段复制产物
+COPY --from=build-stage --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
-# 复制自定义的 nginx 配置（可选）
-# COPY nginx.conf /etc/nginx/nginx.conf
+# 使用自定义配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# 暴露 80 端口
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:8083/ || exit 1
+
+# 暴露端口（与nginx.conf一致）
 EXPOSE 8083
 
-# 启动 nginx 服务
 CMD ["nginx", "-g", "daemon off;"]
