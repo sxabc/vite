@@ -30,7 +30,7 @@ COPY --from=build-stage --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:8083/ || exit 1
+  CMD curl -f http://localhost:5173/ || exit 1
 
 # 暴露端口（与nginx.conf一致）
 EXPOSE 5173
